@@ -49,10 +49,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         if (content.nonEmpty) out << content.head <<| content.tail
 
       case Title(content, _) =>
-        out << "# " << content
+        val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
+        out << anchor <<| "# " << spans
 
       case Header(level, content, _) =>
-        out <<| ("#" * level) << " " << content
+        val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
+        out <<| anchor <<| ("#" * level) << " " << spans
 
       case Section(header, content, _) =>
         out << header <<| content
@@ -104,9 +106,8 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case Text(text, _) =>
         out << text
 
-      case InternalLinkTarget(_) =>
-        // TODO what do we do with these and the toc?
-        out << ""
+      case InternalLinkTarget(opt) =>
+        out << "<a id=\"" << opt.id.get << "\"></a>"
 
 
       case InternalLink(content, ref, _, _) =>
