@@ -18,23 +18,15 @@ import scala.io.Codec
 // rst extensions
 case class Note (content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[Note]
 case class Warning(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[Warning]
-case class IncludeCode(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode] {
-
-  val include: String = {
-    content.flatMap { case Paragraph(spans, _) =>
-      spans.flatMap { case Text(text, _) =>
-        text
-      }
-    }.mkString("")
+case class IncludeCode(name: String, path: String, tag: String, content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
+object IncludeCode {
+  def apply(spec: String, include: Option[String]): IncludeCode = {
+    val (path, hash) = spec.span(_ != '#')
+    val tag = include.getOrElse(hash.dropWhile(_ == '#')).replaceAll(".*,", "") // FIXME: include imports
+    IncludeCode(new JFile(path).getName, path, tag)
   }
-
-  private val tagPos = include.lastIndexOf('#')
-  val path = include.take(tagPos)
-  val tag = include.drop(tagPos + 1)
-
 }
 case class IncludeCode2(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode2]
-
 
 object ParadoxMarkdown extends RendererFactory[TextWriter] {
   override def fileSuffix: String = "md"
@@ -105,9 +97,8 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
 
 
       // our custom thingies/not covered by md
-      case inc: IncludeCode =>
-        val name = inc.path.drop(inc.path.lastIndexOf('/') + 1)
-        out <<| "@@snip [" << name << "](" << inc.path << ") { #" << inc.tag << " }"
+      case IncludeCode(name, path, tag, _, _) =>
+        out <<| "@@snip [" << name << "](" << path << ") { #" << tag << " }"
 
       case IncludeCode2(content, _) =>
         // TODO not implemented
@@ -169,7 +160,9 @@ object Main extends App {
     ReStructuredText withBlockDirectives(
       BlockDirective("note") {blockContent.map(Note(_))},
       BlockDirective("warning") {blockContent.map(Warning(_))},
-      BlockDirective("includecode") {blockContent.map(IncludeCode(_))},
+      BlockDirective("includecode") {
+        (argument(withWS = true) ~ optField("include"))(IncludeCode(_, _))
+      },
       BlockDirective("includecode2") {blockContent.map(IncludeCode2(_))}
     )
   }
