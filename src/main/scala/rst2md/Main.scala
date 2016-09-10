@@ -27,6 +27,7 @@ object IncludeCode {
   }
 }
 case class IncludeCode2(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode2]
+case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 
 object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
   override def fileSuffix: String = "md"
@@ -132,6 +133,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case Warning(content, _) =>
         out <<| "**Warning:**" << content
 
+      case TocTree(maxDepth, toc, _, _) =>
+        // FIXME: This needs to do something similar to @@toc but with a list of pages to traverse.
+        // out <<| "@@toc" + maxDepth.fold("")(depth => s"{ depth=$depth }")
+        out <<| "@@@ index" <|;
+        toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
+        out <|; out <<| "@@@"
 
       // catchalls
       case sc: SpanContainer[_]           =>
@@ -199,6 +206,9 @@ object Main extends App {
       BlockDirective("warning") {blockContent.map(Warning(_))},
       BlockDirective("includecode") {
         (argument(withWS = true) ~ optField("include"))(IncludeCode(_, _))
+      },
+      BlockDirective("toctree") {
+        (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n"))))(TocTree(_,_))
       },
       BlockDirective("includecode2") {blockContent.map(IncludeCode2(_))}
     )
