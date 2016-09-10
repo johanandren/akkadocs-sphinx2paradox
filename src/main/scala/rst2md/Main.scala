@@ -47,40 +47,43 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
     elem match {
 
       case RootElement(content) =>
-        out << content
+        if (content.nonEmpty) out << content.head <<| content.tail
 
       case Title(content, _) =>
-        out << "# " << content << "\n\n"
+        out << "# " << content
 
       case Header(level, content, _) =>
-        out << ("#" * level) << " " << content << "\n\n"
+        out <<| ("#" * level) << " " << content
 
       case Section(header, content, _) =>
-        out << header << content
+        out << header <<| content
 
       case Paragraph(content, _) =>
-        out << content << "\n\n"
+        out <|; out << content
 
       case Strong(content, _) =>
         out << "**" << content << "**"
 
-      case QuotedBlock(content,attr,_)    =>
+      case QuotedBlock(content,attr,_) =>
         content.foreach { block =>
-          out << ">" << block << "\n"
+          out <<| ">" << block
         }
 
+      case BulletList(content, _, _) =>
+        out << content
+
       case BulletListItem(content, _, _) =>
-        out << " * " << content << "\n"
+        out <<| " * " << content
 
       case EnumListItem(content, _, _, _) =>
         // TODO not correct yet
-        out << "**" << content.head << "** " << content.tail << "\n"
+        out <<| "**" << content.head << "** " << content.tail
 
       case CodeBlock(language, content, _) =>
-        out << "```\n" << content << "\n```\n\n"
+        out <<| "```" << content <<| "```"
 
       case LiteralBlock(content, _) =>
-        out << "```\n" << content << "\n```\n\n"
+        out <<| "```" <<| content <<| "```"
 
       case Literal(content, _) =>
         out << "`" << content << "`"
@@ -104,17 +107,17 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
       // our custom thingies/not covered by md
       case inc: IncludeCode =>
         val name = inc.path.drop(inc.path.lastIndexOf('/') + 1)
-        out << "@@snip [" << name << "](" << inc.path << ") { #" << inc.tag << " }\n\n"
+        out <<| "@@snip [" << name << "](" << inc.path << ") { #" << inc.tag << " }"
 
       case IncludeCode2(content, _) =>
         // TODO not implemented
         out << "@@snip [Todo.scala](" << content << "{ #todo }"
 
       case Note(content, _) =>
-        out << "**Note:**\n" << content << "\n\n"
+        out <<| "**Note:**" << content
 
       case Warning(content, _) =>
-        out << "**Warning:**\n" << content << "\n\n"
+        out <<| "**Warning:**" << content
 
 
       // catchalls
