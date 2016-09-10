@@ -53,8 +53,7 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
         out << "# " << content << "\n\n"
 
       case Header(level, content, _) =>
-        val prefix = "##" * level + " "
-        out << prefix << content << "\n\n"
+        out << ("#" * level) << " " << content << "\n\n"
 
       case Section(header, content, _) =>
         out << header << content
