@@ -53,6 +53,9 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
       case Paragraph(content, _) =>
         out <|; out << content
 
+      case Emphasized(content, _) =>
+        out << "*" << content << "*"
+
       case Strong(content, _) =>
         out << "**" << content << "**"
 
