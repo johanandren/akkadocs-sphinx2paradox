@@ -202,9 +202,10 @@ object Main extends App {
     import laika.parse.rst.Directives.Parts._
 
     import laika.parse.rst.TextRoles._
+    import laika.parse.rst.TextRoles.Parts.{ field => textRoleField }
     import laika.parse.rst.ext._
 
-    ReStructuredText withBlockDirectives(
+    val blockDirectives = List(
       BlockDirective("note") {blockContent.map(Note(_))},
       BlockDirective("warning") {blockContent.map(Warning(_))},
       BlockDirective("includecode") {
@@ -215,6 +216,19 @@ object Main extends App {
       },
       BlockDirective("includecode2") {blockContent.map(IncludeCode2(_))}
     )
+
+    val textRoles = List(
+      TextRole("ref", "")(textRoleField("ref")) { (base, content) =>
+        val refMatch = """(.*)( <(.*)>)""".r
+        val (text, id) = content match {
+          case refMatch(refText, _, refId) => (refText, refId)
+          case _ => (content, content)
+        }
+        InternalLink(List(Text(text)), id, None, NoOpt)
+      }
+    )
+
+    ReStructuredText withBlockDirectives(blockDirectives: _*) withTextRoles(textRoles: _*)
   }
 
   Transform from akkaRst to ParadoxMarkdown fromDirectory srcDir.toJava toDirectory destDir.toJava
