@@ -28,14 +28,21 @@ object IncludeCode {
 }
 case class IncludeCode2(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode2]
 
-object ParadoxMarkdown extends RendererFactory[TextWriter] {
+object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
   override def fileSuffix: String = "md"
-  override def newRenderer(output: Output, root: Element, render: Element => Unit, styles: StyleDeclarationSet): (TextWriter, (Element) => Unit) = {
-    val out = new TextWriter(output.asFunction, render, root, ". ")
+  override def newRenderer(output: Output, root: Element, render: Element => Unit, styles: StyleDeclarationSet): (MarkdownWriter, (Element) => Unit) = {
+    val out = new MarkdownWriter(output.asFunction, render, root, ". ")
     (out, renderElement(out))
   }
 
-  private def renderElement (out: TextWriter)(elem: Element): Unit = {
+  private def unwrapBlocks(blocks: Seq[Block]): Seq[Element] = blocks match {
+    case SpanSequence(content, _) :: Nil => content
+    case Paragraph(content, opt) :: Nil => content
+    case ForcedParagraph(content, opt) :: Nil => content
+    case other => other
+  }
+
+  private def renderElement (out: MarkdownWriter)(elem: Element): Unit = {
     elem match {
 
       case RootElement(content) =>
@@ -68,14 +75,25 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
         out << content
 
       case BulletListItem(content, _, _) =>
-        out <<| " * " << content
+        out.indentWith(" * ") { out << unwrapBlocks(content) }
+
+      case EnumList(content,format,start,opt) =>
+        //FIXME("ol", opt, ("class", format.enumType.toString.toLowerCase), ("start", noneIfDefault(start,1))) <<|> content <<| "</ol>"
+        out << content
 
       case EnumListItem(content, _, _, _) =>
         // TODO not correct yet
-        out <<| "**" << content.head << "** " << content.tail
+        out.indentWith(" # ") { out << unwrapBlocks(content) }
+
+      case DefinitionList(content, _) =>
+        out << content
+
+      case DefinitionListItem(term, definition, _) =>
+        //out << s"TERM=[$term] DEF=[$definition]"
+        out << term << " " << unwrapBlocks(definition)
 
       case CodeBlock(language, content, _) =>
-        out <<| "```" << content <<| "```"
+        out <<| s"```$language" << content <<| "```"
 
       case LiteralBlock(content, _) =>
         out <<| "```" <<| content <<| "```"
@@ -133,7 +151,22 @@ object ParadoxMarkdown extends RendererFactory[TextWriter] {
   }
 }
 
+class MarkdownWriter(out: String => Unit, render: Element => Unit, root: Element, indentItem: String)
+  extends TextWriter(out, render, root, indentItem, newLine = "\n") {
 
+    /**
+     * Executes the specified block while temporarily
+     * shifting the indentation level. First line uses
+     * the provided indent token.
+     */
+    def indentWith(indent: String)(block: => Unit): Unit = {
+       val oldIndent = Indent.current
+       <<|(indent)
+       Indent.current = "\n" + (" " * indent.length)
+       block
+       Indent.current = oldIndent
+    }
+}
 
 object Main extends App {
   if (args.length != 2) {
