@@ -24,7 +24,6 @@ object IncludeCode {
     IncludeCode(new JFile(path).getName, path, tag)
   }
 }
-case class IncludeCode2(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode2]
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 
 object ApiRef {
@@ -141,10 +140,6 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case IncludeCode(name, path, tag, _, _) =>
         out <<| "@@snip [" << name << "](" << path << ") { #" << tag << " }"
 
-      case IncludeCode2(content, _) =>
-        // TODO not implemented
-        out << "@@snip [Todo.scala](" << content << "{ #todo }"
-
       case TocTree(maxDepth, toc, _, _) =>
         // FIXME: This needs to do something similar to @@toc but with a list of pages to traverse.
         // out <<| "@@toc" + maxDepth.fold("")(depth => s"{ depth=$depth }")
@@ -221,13 +216,16 @@ object Main extends App {
       BlockDirective("includecode") {
         (argument(withWS = true) ~ optField("include"))(IncludeCode(_, _))
       },
+      BlockDirective("includecode2") {
+        // :snippet: field is not actually optional
+        (argument(withWS = true) ~ optField("snippet"))(IncludeCode(_, _))
+      },
       BlockDirective("toctree") {
         (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n"))))(TocTree(_,_))
       },
       BlockDirective("code-block") {
         (argument(withWS = true) ~ spanContent)(CodeBlock(_, _))
-      },
-      BlockDirective("includecode2") {blockContent.map(IncludeCode2(_))}
+      }
     )
 
     val textRoles = List(
