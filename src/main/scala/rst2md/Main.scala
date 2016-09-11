@@ -97,7 +97,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << term << " " << unwrapBlocks(definition)
 
       case CodeBlock(language, content, _) =>
-        out <<| s"```$language" << content <<| "```"
+        out <<| "```" << language.replace("^none$", "") <<| content <<| "```"
 
       case LiteralBlock(content, _) =>
         out <<| "```" <<| content <<| "```"
@@ -206,6 +206,9 @@ object Main extends App {
       },
       BlockDirective("toctree") {
         (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n"))))(TocTree(_,_))
+      },
+      BlockDirective("code-block") {
+        (argument(withWS = true) ~ spanContent)(CodeBlock(_, _))
       },
       BlockDirective("includecode2") {blockContent.map(IncludeCode2(_))}
     )
