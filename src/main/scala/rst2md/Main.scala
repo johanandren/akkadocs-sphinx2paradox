@@ -16,8 +16,6 @@ import laika.io._
 import scala.io.Codec
 
 // rst extensions
-case class Note (content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[Note]
-case class Warning(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[Warning]
 case class IncludeCode(name: String, path: String, tag: String, content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
 object IncludeCode {
   def apply(spec: String, include: Option[String]): IncludeCode = {
@@ -120,6 +118,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case ExternalLink(content, url, _, _) =>
         out << "[" << content << "](" << url << ")"
 
+      // Renders note and warnings
+      case TitledBlock(title, content, _) =>
+        out <<| "**" << title << ":**" << content
 
 
       // our custom thingies/not covered by md
@@ -129,12 +130,6 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case IncludeCode2(content, _) =>
         // TODO not implemented
         out << "@@snip [Todo.scala](" << content << "{ #todo }"
-
-      case Note(content, _) =>
-        out <<| "**Note:**" << content
-
-      case Warning(content, _) =>
-        out <<| "**Warning:**" << content
 
       case TocTree(maxDepth, toc, _, _) =>
         // FIXME: This needs to do something similar to @@toc but with a list of pages to traverse.
@@ -206,8 +201,6 @@ object Main extends App {
     import laika.parse.rst.ext._
 
     val blockDirectives = List(
-      BlockDirective("note") {blockContent.map(Note(_))},
-      BlockDirective("warning") {blockContent.map(Warning(_))},
       BlockDirective("includecode") {
         (argument(withWS = true) ~ optField("include"))(IncludeCode(_, _))
       },
