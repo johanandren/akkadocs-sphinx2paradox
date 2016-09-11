@@ -27,6 +27,20 @@ object IncludeCode {
 case class IncludeCode2(content: Seq[Block], options: Options = NoOpt) extends Block with BlockContainer[IncludeCode2]
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 
+object ApiRef {
+  sealed trait Role {
+    def name: String = toString.toLowerCase
+  }
+  case object Class extends Role
+  case object Meth extends Role
+  case object Obj extends Role
+  case object Mod extends Role
+  case object Func extends Role
+  case object Doc extends Role
+  val roles = List(Class, Meth, Obj, Mod, Func, Doc)
+}
+case class ApiRef(name: String, role: ApiRef.Role, options: Options = NoOpt) extends Span
+
 object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
   override def fileSuffix: String = "md"
   override def newRenderer(output: Output, root: Element, render: Element => Unit, styles: StyleDeclarationSet): (MarkdownWriter, (Element) => Unit) = {
@@ -138,6 +152,10 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
         out <|; out <<| "@@@"
 
+      case ApiRef(name, role, _) =>
+        // FIXME: Custom directive or link to ScalaDoc?
+        out << "`" << name << "`"
+
       // catchalls
       case sc: SpanContainer[_]           =>
         out << "Missing conversion: " << sc.getClass.toString
@@ -192,7 +210,6 @@ object Main extends App {
 
 
   val akkaRst = {
-
     import laika.parse.rst.Directives._
     import laika.parse.rst.Directives.Parts._
 
@@ -222,7 +239,9 @@ object Main extends App {
         }
         InternalLink(List(Text(text)), id, None, NoOpt)
       }
-    )
+    ) ++ ApiRef.roles.map { role =>
+      TextRole(role.name, "")(textRoleField(role.name)) { (_, name) => ApiRef(name, role) }
+    }
 
     ReStructuredText withBlockDirectives(blockDirectives: _*) withTextRoles(textRoles: _*)
   }
