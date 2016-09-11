@@ -16,13 +16,16 @@ import laika.io._
 import scala.io.Codec
 
 // rst extensions
-case class IncludeCode(name: String, path: String, tag: String, content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
+case class IncludeCode(path: String, tag: Option[String], language: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
 object IncludeCode {
-  def apply(spec: String, include: Option[String]): IncludeCode = {
+  def apply(spec: String, include: Option[String], exclude: Option[String], language: Option[String]): IncludeCode = {
     val (path, hash) = spec.span(_ != '#')
-    val tag = include.getOrElse(hash.dropWhile(_ == '#')).replaceAll(".*,", "") // FIXME: include imports
-    IncludeCode(new JFile(path).getName, path, tag)
+    val tag = include.orElse(Some(hash.dropWhile(_ == '#'))).map(_.replaceAll(".*,", "")) // FIXME: include imports
+    IncludeCode(path, tag, language)
   }
+
+  def literal(path: String, language: Option[String]): IncludeCode =
+    IncludeCode(path, None, language)
 }
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 
@@ -53,6 +56,8 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
     case ForcedParagraph(content, opt) :: Nil => content
     case other => other
   }
+
+  private def fileName(path: String) = new JFile(path).getName
 
   private def renderElement (out: MarkdownWriter)(elem: Element): Unit = {
     elem match {
@@ -137,8 +142,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
 
       // our custom thingies/not covered by md
-      case IncludeCode(name, path, tag, _, _) =>
-        out <<| "@@snip [" << name << "](" << path << ") { #" << tag << " }"
+      case IncludeCode(path, tag, language, _, _) =>
+        out <<| "@@snip [" << fileName(path) << "](" << path << ") {"
+        // FIXME: Using identifier here because Paradox doesn't seem to resolves `#` correctly
+        tag foreach { out << " identifier=" << _ }
+        language foreach { out << " language=" << _ }
+        out << " }"
 
       case TocTree(maxDepth, toc, _, _) =>
         // FIXME: This needs to do something similar to @@toc but with a list of pages to traverse.
@@ -214,11 +223,14 @@ object Main extends App {
 
     val blockDirectives = List(
       BlockDirective("includecode") {
-        (argument(withWS = true) ~ optField("include"))(IncludeCode(_, _))
+        (argument(withWS = true) ~ optField("include") ~ optField("exclude") ~ optField("language"))(IncludeCode(_, _, _, _))
       },
       BlockDirective("includecode2") {
         // :snippet: field is not actually optional
-        (argument(withWS = true) ~ optField("snippet"))(IncludeCode(_, _))
+        (argument(withWS = true) ~ optField("snippet"))(IncludeCode(_, _, None, None))
+      },
+      BlockDirective("literalinclude") {
+        (argument(withWS = true) ~ optField("language"))(IncludeCode.literal(_, _))
       },
       BlockDirective("toctree") {
         (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n"))))(TocTree(_,_))
