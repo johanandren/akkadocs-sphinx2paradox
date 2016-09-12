@@ -28,6 +28,7 @@ object IncludeCode {
     IncludeCode(path, None, language)
 }
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
+case class Figure(path: String, scale: Option[String], align: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[Figure]
 
 object ApiRef {
   sealed trait Role {
@@ -136,6 +137,14 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case ExternalLink(content, url, _, _) =>
         out << "[" << content << "](" << url << ")"
 
+      case Image(_, uri, title, _) =>
+        out << "![" << fileName(uri.uri) << "](" << uri.uri << ")"
+
+      case Figure(path, scale, align, content, _) =>
+        out <<| "![" << fileName(path) << "](" << path << ")"
+        // FIXME: Find better way to render caption
+        out <<| content
+
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
         out <<| "**" << title << ":**" << content
@@ -237,6 +246,15 @@ object Main extends App {
       },
       BlockDirective("code-block") {
         (argument(withWS = true) ~ spanContent)(CodeBlock(_, _))
+      },
+      BlockDirective("figure") {
+        (argument(withWS = true) ~ optField("scale") ~ optField("align") ~ blockContent)(Figure(_, _, _, _))
+      },
+      BlockDirective("image") {
+        (argument(withWS = true) ~ optField("width") ~ optField("align")) { (uri, width, align) =>
+          // FIXME: Pass width and align via Styles()?
+          Paragraph(Seq(Image("", URI(uri), None, NoOpt)))
+        }
       }
     )
 
