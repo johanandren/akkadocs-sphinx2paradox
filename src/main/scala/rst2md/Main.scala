@@ -121,6 +121,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case LiteralBlock(content, _) =>
         out <<| "```" <<| content <<| "```"
 
+      case ParsedLiteralBlock(content, _) =>
+        out <<| "```" <<| content << "```"
+
       case Literal(content, _) =>
         out << "`" << content << "`"
 
