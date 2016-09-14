@@ -180,6 +180,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         // FIXME: Find better way to render caption
         out <<| "> " << content
 
+      case FootnoteLink(ref, label, _) =>
+        out << "<a id=\"^" << ref << "\" href=\"#" << ref << "\">[" << label << "]</a>"
+
+      case Footnote(label, content, Id(id)) =>
+        out <<| s"""> <a id="$id" href="#^$id">[""" << label << "]</a> " << unwrapBlocks(content)
+
       case Comment(content, _) =>
         out << "<!-- " << content << " -->"
 
