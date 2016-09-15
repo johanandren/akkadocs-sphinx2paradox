@@ -180,6 +180,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         // FIXME: Find better way to render caption
         out <<| "> " << content
 
+      case Comment(content, _) =>
+        out << "<!-- " << content << " -->"
+
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
         out <<| "> **" << title << ":**" << content
