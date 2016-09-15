@@ -112,8 +112,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << content
 
       case DefinitionListItem(term, definition, _) =>
-        //out << s"TERM=[$term] DEF=[$definition]"
-        out << term << " " << unwrapBlocks(definition)
+        out <<| term <<| ": " << unwrapBlocks(definition) <|
 
       case CodeBlock(language, content, _) =>
         out <<| "```" << language.replace("^none$", "") <<| content <<| "```"
