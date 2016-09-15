@@ -68,7 +68,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       case Title(content, _) =>
         val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
-        out << anchor <<| "# " << spans
+        out << anchor
+        if (anchor.nonEmpty) { out <| }
+        out << "# " << spans
 
       case Header(level, content, _) =>
         val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
