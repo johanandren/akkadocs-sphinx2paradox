@@ -250,20 +250,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << "`" << name << "`"
 
       // catchalls
-      case sc: SpanContainer[_]           =>
-        out << "Missing conversion: " << sc.getClass.toString
-        out << sc.content
-
-      case tc: TextContainer              =>
-        out << "Missing conversion: " << tc.getClass.toString
-        out << tc.content
-
-      case ec: ElementContainer[_,_]      =>
-        out << "Missing conversion: " << ec.getClass.toString
-        out << ec.content
-
-      case e                              =>
+      case e: Invalid[_] =>
+        println(e.toString)
         out << s"unknown element: $e"
+
+      case unhandled =>
+        sys.error(unhandled.toString)
     }
   }
 }
