@@ -22,7 +22,7 @@ case class IncludeCode(path: String, tag: Seq[String], language: Option[String],
 object IncludeCode {
   def apply(spec: String, include: Option[String], exclude: Option[String], language: Option[String]): IncludeCode = {
     val (path, hash) = spec.span(_ != '#')
-    val tag = include.orElse(Some(hash.dropWhile(_ == '#'))).map(_.replaceAll(".*,", "")) // FIXME: include imports
+    val tag = include.orElse(Some(hash.dropWhile(_ == '#'))).map(_.replaceAll(".*,", ""))
     IncludeCode(path, tag.toList.flatMap(_.split(",")), language)
   }
 
@@ -237,7 +237,8 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       // our custom thingies/not covered by md
       case IncludeCode(path, tags, language, _, _) =>
-        out <<| "@@snip [" << fileName(path) << "](" << path << ") {"
+        val fixme = Set("/akka-http", "/scala/", "directive").forall(path.contains)
+        out <<| (if (fixme) "FIXME" else "") << "@@snip [" << fileName(path) << "](" << path << ") {"
         tags foreach { out << " #" << _ }
         language foreach { out << " type=" << _ }
         out << " }"
