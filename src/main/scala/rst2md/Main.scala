@@ -178,7 +178,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case Figure(path, scale, align, content, _) =>
         out <<| "![" << fileName(path) << "](" << path << ")"
         // FIXME: Find better way to render caption
-        out <<| content
+        out <<| "> " << content
 
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
