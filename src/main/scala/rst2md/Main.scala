@@ -103,12 +103,10 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out.indentWith(" * ") { out << unwrapBlocks(content) }
 
       case EnumList(content,format,start,opt) =>
-        //FIXME("ol", opt, ("class", format.enumType.toString.toLowerCase), ("start", noneIfDefault(start,1))) <<|> content <<| "</ol>"
         out << content
 
-      case EnumListItem(content, _, _, _) =>
-        // TODO not correct yet
-        out.indentWith(" # ") { out << unwrapBlocks(content) }
+      case EnumListItem(content, _, num, _) =>
+        out.indentWith(s" $num. ") { out << unwrapBlocks(content) }
 
       case DefinitionList(content, _) =>
         out << content
