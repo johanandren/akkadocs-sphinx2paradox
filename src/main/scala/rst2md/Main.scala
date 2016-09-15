@@ -13,6 +13,7 @@ import laika.render.TextWriter
 import laika.tree.Elements._
 import laika.io._
 
+import scala.collection.mutable.StringBuilder
 import scala.io.Codec
 import scala.util.Try
 
@@ -192,6 +193,43 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
         out <<| "> **" << title << ":**" << content
+
+
+      case Table(TableHead(headerRows, _), TableBody(rows, _), caption, _, _) =>
+        assert(caption.content.isEmpty && headerRows.size <= 1, s"$elem")
+
+        def cellText(cell: Cell): String = {
+          val sb = new StringBuilder
+          var renderF: Element => Unit = null
+          val writer = new MarkdownWriter(s => { sb.append(s); () }, x => renderF(x), cell, ". ")
+          renderF = renderElement(writer)
+          renderF(cell)
+          sb.toString
+        }
+
+        val head = headerRows.map(_.content.map(cellText))
+        val body = rows.map(_.content.map(cellText))
+        val width = body.foldLeft(body.head.map(_ => 0)) { (state, row) =>
+          row.map(_.size).zip(state).map(t => math.max(t._1, t._2))
+        }
+
+        def renderRow(row: Seq[String]): String =
+          row.zip(width).map(t => s"%-${t._2}s".format(t._1)).mkString("|", " | ", "|")
+
+        head.foreach { row =>
+          val text = renderRow(row)
+          out <<| text <<| text.replaceAll("[^|]", "-")
+        }
+        body.foreach { row =>
+          out <<| renderRow(row)
+        }
+
+      case Cell(_, content, _, _, _) =>
+        val span = unwrapBlocks(content) map { _ match {
+          case Text(content, _) => Text(content.replaceAllLiterally("\n", " "))
+          case other => other
+        }}
+        out << span
 
 
       // our custom thingies/not covered by md
