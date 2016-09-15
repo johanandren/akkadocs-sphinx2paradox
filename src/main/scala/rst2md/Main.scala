@@ -16,16 +16,16 @@ import laika.io._
 import scala.io.Codec
 
 // rst extensions
-case class IncludeCode(path: String, tag: Option[String], language: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
+case class IncludeCode(path: String, tag: Seq[String], language: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
 object IncludeCode {
   def apply(spec: String, include: Option[String], exclude: Option[String], language: Option[String]): IncludeCode = {
     val (path, hash) = spec.span(_ != '#')
     val tag = include.orElse(Some(hash.dropWhile(_ == '#'))).map(_.replaceAll(".*,", "")) // FIXME: include imports
-    IncludeCode(path, tag, language)
+    IncludeCode(path, tag.toList.flatMap(_.split(",")), language)
   }
 
   def literal(path: String, language: Option[String]): IncludeCode =
-    IncludeCode(path, None, language)
+    IncludeCode(path, Seq.empty, language)
 }
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 case class Figure(path: String, scale: Option[String], align: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[Figure]
@@ -153,11 +153,10 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
 
       // our custom thingies/not covered by md
-      case IncludeCode(path, tag, language, _, _) =>
+      case IncludeCode(path, tags, language, _, _) =>
         out <<| "@@snip [" << fileName(path) << "](" << path << ") {"
-        // FIXME: Using identifier here because Paradox doesn't seem to resolves `#` correctly
-        tag foreach { out << " identifier=" << _ }
-        language foreach { out << " language=" << _ }
+        tags foreach { out << " #" << _ }
+        language foreach { out << " type=" << _ }
         out << " }"
 
       case TocTree(maxDepth, toc, _, _) =>
