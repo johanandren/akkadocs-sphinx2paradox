@@ -160,8 +160,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << " }"
 
       case TocTree(maxDepth, toc, _, _) =>
-        // FIXME: This needs to do something similar to @@toc but with a list of pages to traverse.
-        // out <<| "@@toc" + maxDepth.fold("")(depth => s"{ depth=$depth }")
+        out <<| "@@toc" << maxDepth.fold("")(depth => s"{ depth=$depth }") <|;
         out <<| "@@@ index" <|;
         toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
         out <|; out <<| "@@@"
