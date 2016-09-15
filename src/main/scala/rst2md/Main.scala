@@ -231,6 +231,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         }}
         out << span
 
+      case InvalidSpan(SystemMessage(_, reason, _), fallback, _) =>
+        println(s"ERROR: $reason")
+        out << "<!-- FIXME: " << reason << " --> " << fallback
 
       // our custom thingies/not covered by md
       case IncludeCode(path, tags, language, _, _) =>
@@ -250,10 +253,6 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << "`" << name << "`"
 
       // catchalls
-      case e: Invalid[_] =>
-        println(e.toString)
-        out << s"unknown element: $e"
-
       case unhandled =>
         sys.error(unhandled.toString)
     }
@@ -332,15 +331,10 @@ object Main extends App {
 
     val textRoles = List(
       TextRole("ref", "")(textRoleField("ref")) { (base, content) =>
-        val refMatch = """(.*)( <(.*)>)""".r
-        val external = Set("streams-java", "stream-io-java", "streams-scala", "stream-io-scala")
+        val refMatch = """(.*[^ ])[ ]*(<(.*)>)""".r
 
-        def linkReference(text: String, id: String) = {
-          if (external(id))
-            Text(s"$text <!-- FIXME: external ref: $id -->")
-          else
-            LinkReference(List(Text(text.replaceAll("^-(.*)(-scala|-java)?-", "$1"), NoOpt)), id.toLowerCase, id)
-          }
+        def linkReference(text: String, id: String) =
+          LinkReference(List(Text(text.replaceAll("^-(.*)(-scala|-java)?-", "$1"))), id.toLowerCase, id)
 
         content match {
           case refMatch(refText, _, refName) => linkReference(refText, refName)
