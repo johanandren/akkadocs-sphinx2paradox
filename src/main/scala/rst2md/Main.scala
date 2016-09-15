@@ -14,6 +14,7 @@ import laika.tree.Elements._
 import laika.io._
 
 import scala.io.Codec
+import scala.util.Try
 
 // rst extensions
 case class IncludeCode(path: String, tag: Seq[String], language: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[IncludeCode]
@@ -44,6 +45,22 @@ object ApiRef {
 }
 case class ApiRef(name: String, role: ApiRef.Role, options: Options = NoOpt) extends Span
 
+object RefsCache {
+  val refsDir = new JFile(".refs")
+
+  def put(id: String, title: String) = {
+    refsDir.mkdirs
+    new java.io.FileWriter(new JFile(refsDir, id)) { write(title); close }
+  }
+
+  def get(id: String) = {
+    val title = Try {
+      scala.io.Source.fromFile(new JFile(refsDir, id)).getLines.mkString
+    }
+    title getOrElse id
+  }
+}
+
 object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
   override def fileSuffix: String = "md"
   override def newRenderer(output: Output, root: Element, render: Element => Unit, styles: StyleDeclarationSet): (MarkdownWriter, (Element) => Unit) = {
@@ -58,6 +75,15 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
     case other => other
   }
 
+  private def cacheRefTitle(anchors: Seq[Span], content: Seq[Span]): Unit = anchors.headOption match {
+    case Some(InternalLinkTarget(Id(id))) =>
+      val title = content match {
+        case List(Text(text, _)) => text
+      }
+      RefsCache.put(id, title)
+    case _ => ()
+  }
+
   private def fileName(path: String) = new JFile(path).getName
 
   private def renderElement (out: MarkdownWriter)(elem: Element): Unit = {
@@ -68,12 +94,14 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       case Title(content, _) =>
         val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
+        cacheRefTitle(anchor, spans)
         out << anchor
         if (anchor.nonEmpty) { out <| }
         out << "# " << spans
 
       case Header(level, content, _) =>
         val (anchor, spans) = content.partition(_.isInstanceOf[InternalLinkTarget])
+        cacheRefTitle(anchor, spans)
         out <<| anchor <<| ("#" * level) << " " << spans
 
       case Section(header, content, _) =>
@@ -133,8 +161,10 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << "<a id=\"" << opt.id.get << "\"></a>"
 
 
-      case InternalLink(content, ref, _, _) =>
-        out << "@ref:[" << content << "](" << ref << ")"
+      case CrossLink(content, ref, path, _, _) =>
+        val target = path.relative.toString.replace(".rst", ".md")
+        val link =  if (ref.isEmpty) target else s"$target#$ref"
+        out << "@ref[" << content << "](" << link << ")"
 
       case ExternalLink(content, url, _, _) =>
         out << "[" << content << "](" << url << ")"
@@ -261,11 +291,19 @@ object Main extends App {
     val textRoles = List(
       TextRole("ref", "")(textRoleField("ref")) { (base, content) =>
         val refMatch = """(.*)( <(.*)>)""".r
-        val (text, id) = content match {
-          case refMatch(refText, _, refId) => (refText, refId)
-          case _ => (content, content)
+        val external = Set("streams-java", "stream-io-java", "streams-scala", "stream-io-scala")
+
+        def linkReference(text: String, id: String) = {
+          if (external(id))
+            Text(s"$text <!-- FIXME: external ref: $id -->")
+          else
+            LinkReference(List(Text(text.replaceAll("^-(.*)(-scala|-java)?-", "$1"), NoOpt)), id.toLowerCase, id)
+          }
+
+        content match {
+          case refMatch(refText, _, refName) => linkReference(refText, refName)
+          case _ => linkReference(RefsCache.get(content), content)
         }
-        InternalLink(List(Text(text)), id, None, NoOpt)
       }
     ) ++ ApiRef.roles.map { role =>
       TextRole(role.name, "")(textRoleField(role.name)) { (_, name) => ApiRef(name, role) }
