@@ -166,6 +166,9 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         val link =  if (ref.isEmpty) target else s"$target#$ref"
         out << "@ref[" << content << "](" << link << ")"
 
+      case InternalLink(content, ref, _, _) =>
+        out << "[" << content << "](#" << ref << ")"
+
       case ExternalLink(content, url, _, _) =>
         out << "[" << content << "](" << url << ")"
 
