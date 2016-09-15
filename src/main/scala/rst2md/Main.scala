@@ -149,7 +149,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
-        out <<| "**" << title << ":**" << content
+        out <<| "> **" << title << ":**" << content
 
 
       // our custom thingies/not covered by md
