@@ -22,7 +22,7 @@ case class IncludeCode(path: String, tag: Seq[String], language: Option[String],
 object IncludeCode {
   def apply(spec: String, include: Option[String], exclude: Option[String], language: Option[String]): IncludeCode = {
     val (path, hash) = spec.span(_ != '#')
-    val tag = include.orElse(Some(hash.dropWhile(_ == '#'))).map(_.replaceAll(".*,", ""))
+    val tag = include.orElse(Some(hash.dropWhile(_ == '#')))
     IncludeCode(path, tag.toList.flatMap(_.split(",")), language)
   }
 
