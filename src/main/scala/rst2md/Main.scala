@@ -27,7 +27,7 @@ object IncludeCode {
   }
 
   def literal(path: String, language: Option[String]): IncludeCode =
-    IncludeCode(path, Seq.empty, language)
+    IncludeCode(path, Seq.empty, language.filter(_ != "none"))
 }
 case class TocTree(maxDepth: Option[String], toc: Seq[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[TocTree]
 case class Figure(path: String, scale: Option[String], align: Option[String], content: Seq[Block] = Seq.empty, options: Options = NoOpt) extends Block with BlockContainer[Figure]
@@ -238,13 +238,12 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       // our custom thingies/not covered by md
       case IncludeCode(path, tags, language, _, _) =>
         val fixme = Set("/akka-http", "/scala/", "directive").forall(path.contains)
-        out <<| (if (fixme) "FIXME" else "") << "@@snip [" << fileName(path) << "](" << path << ") {"
-        tags foreach { out << " #" << _ }
-        language foreach { out << " type=" << _ }
-        out << " }"
+        out <<| (if (fixme) "FIXME" else "") << "@@snip [" << fileName(path) << "](" << path << ")"
+        val attributes = (tags.map("#" + _) ++ language.map("type=" + _)).mkString(" ")
+        if (attributes.nonEmpty) out << " { " << attributes << " }"
 
       case TocTree(maxDepth, toc, _, _) =>
-        out <<| "@@toc" << maxDepth.fold("")(depth => s"{ depth=$depth }") <|;
+        out <<| "@@toc" << maxDepth.fold("")(depth => s" { depth=$depth }") <|;
         out <<| "@@@ index" <|;
         toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
         out <|; out <<| "@@@"
