@@ -330,7 +330,7 @@ object Main extends App {
         (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n"))))(TocTree(_,_))
       },
       BlockDirective("code-block") {
-        (argument(withWS = true) ~ spanContent)(CodeBlock(_, _))
+        (argument(withWS = true) ~ content[Seq[Span]](c => Right(Seq(Text(c, NoOpt)))))(CodeBlock(_, _))
       },
       BlockDirective("figure") {
         (argument(withWS = true) ~ optField("scale") ~ optField("align") ~ blockContent)(Figure(_, _, _, _))
