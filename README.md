@@ -12,5 +12,7 @@ sbt> ~run <path-to-sphinx-site> <path-to-paradox-site>
 
 Examples of projects where it has been used:
 
- - [Akka HTTP](https://github.com/akka/akka-http) - akka/akka-http#313
- - [SSL Config](https://github.com/typesafehub/ssl-config) - typesafehub/ssl-config#51
+ - [Akka HTTP](https://github.com/akka/akka-http) -
+   [akka/akka-http#313](https://github.com/akka/akka-http/pull/313)
+ - [SSL Config](https://github.com/typesafehub/ssl-config) -
+   [typesafehub/ssl-config#51](https://github.com/typesafehub/ssl-config/pull/51)
