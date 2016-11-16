@@ -198,8 +198,15 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       // Renders note and warnings
       case TitledBlock(title, content, _) =>
-        out <<| "> **" << title << ":**" << content
-
+        val callout = title match {
+          case Seq(Text("Warning", _)) => "warning"
+          case Seq(Text("Note", _)) => "note"
+          case Seq(Text(other, _)) => s"""note { title="$other" }"""
+        }
+        out <<| "@@@ " << callout
+        out <<| content
+        out <<| ""
+        out <<| "@@@"
 
       case Table(TableHead(headerRows, _), TableBody(rows, _), caption, _, _) =>
         assert(caption.content.isEmpty && headerRows.size <= 1, s"$elem")
