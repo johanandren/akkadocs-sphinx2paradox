@@ -170,7 +170,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
       case CrossLink(content, ref, path, _, _) =>
         val target = path.relative.toString.replace(".rst", ".md")
         val link =  if (ref.isEmpty) target else s"$target#$ref"
-        out << "@ref[" << content << "](" << link << ")"
+        out << "@ref:[" << content << "](" << link << ")"
 
       case InternalLink(content, ref, _, _) =>
         out << "[" << normalizeSpanText(content) << "](#" << ref << ")"
