@@ -256,9 +256,11 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       case TocTree(maxDepth, toc, _, _) =>
         out <<| "@@toc" << maxDepth.fold("")(depth => s" { depth=$depth }") <|;
-        out <<| "@@@ index" <|;
-        toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
-        out <|; out <<| "@@@"
+        if (toc.nonEmpty) {
+          out <<| "@@@ index" <|;
+          toc foreach { entry => out <<| s"* [$entry]($entry.md)" }
+          out <|; out <<| "@@@"
+        }
 
       case ApiRef(name, role, _) =>
         // FIXME: Custom directive or link to ScalaDoc?
