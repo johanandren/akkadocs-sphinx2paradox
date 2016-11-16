@@ -329,6 +329,9 @@ object Main extends App {
       BlockDirective("toctree") {
         (optField("maxdepth") ~ content[Seq[String]](c => Right(c.split("\n").map(_.replaceAll("\\.rst$", "")))))(TocTree(_,_))
       },
+      BlockDirective("contents") {
+        (optField("depth") ~ content[Seq[String]](c => { require(c == ".."); Right(Seq.empty) }))(TocTree(_,_))
+      },
       BlockDirective("code-block") {
         (argument(withWS = true) ~ content[Seq[Span]](c => Right(Seq(Text(c, NoOpt)))))(CodeBlock(_, _))
       },
