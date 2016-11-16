@@ -10,6 +10,9 @@ $ sbt
 sbt> ~run <path-to-sphinx-site> <path-to-paradox-site>
 ```
 
+See also the `scripts` directory for utilities to help convert and clean up
+docs.
+
 Examples of projects where it has been used:
 
  - [Akka HTTP](https://github.com/akka/akka-http) -
