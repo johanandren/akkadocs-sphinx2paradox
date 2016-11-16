@@ -76,6 +76,11 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
     case other => other
   }
 
+  private def normalizeSpanText(content: Seq[Span]): Seq[Span] = content.foldRight(List.empty[Span]) {
+    case (Text(text, opt), acc) => Text(if (acc.isEmpty) text.trim else text, opt) :: acc
+    case (other, acc) => other :: acc
+  }
+
   private def cacheRefTitle(anchors: Seq[Span], content: Seq[Span]): Unit = anchors.headOption match {
     case Some(InternalLinkTarget(Id(id))) =>
       val title = content match {
@@ -168,10 +173,11 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
         out << "@ref[" << content << "](" << link << ")"
 
       case InternalLink(content, ref, _, _) =>
-        out << "[" << content << "](#" << ref << ")"
+        out << "[" << normalizeSpanText(content) << "](#" << ref << ")"
 
       case ExternalLink(content, url, _, _) =>
-        out << "[" << content << "](" << url << ")"
+        val escapedUrl = url.replaceAll("([()])", "\\\\$1")
+        out << "[" << normalizeSpanText(content) << "](" << escapedUrl << ")"
 
       case Image(_, uri, title, _) =>
         out << "![" << fileName(uri.uri) << "](" << uri.uri << ")"
