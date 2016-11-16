@@ -250,8 +250,7 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
 
       // our custom thingies/not covered by md
       case IncludeCode(path, tags, language, _, _) =>
-        val fixme = Set("/akka-http", "/scala/", "directive").forall(path.contains)
-        out <<| (if (fixme) "FIXME" else "") << "@@snip [" << fileName(path) << "](" << path << ")"
+        out <<| "@@snip [" << fileName(path) << "](" << path << ")"
         val attributes = (tags.map("#" + _) ++ language.map("type=" + _)).mkString(" ")
         if (attributes.nonEmpty) out << " { " << attributes << " }"
 
