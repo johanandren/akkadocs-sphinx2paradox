@@ -2,6 +2,7 @@ package rst2md
 
 import better.files._
 import java.io.{File => JFile}
+import java.nio.charset.Charset
 
 import laika.api.Transform
 import laika.factory.RendererFactory
@@ -44,7 +45,9 @@ object ApiRef {
   case object Doc extends Role
   val roles = List(Class, Meth, Obj, Mod, Func, Doc)
 }
-case class ApiRef(name: String, role: ApiRef.Role, options: Options = NoOpt) extends Span
+case class ApiRef(name: String, role: ApiRef.Role, options: Options = NoOpt) extends Span with TextContainer {
+  override def content: String = name
+}
 
 object RefsCache {
   val refsDir = new JFile(".refs")
@@ -65,7 +68,11 @@ object RefsCache {
 object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
   override def fileSuffix: String = "md"
   override def newRenderer(output: Output, root: Element, render: Element => Unit, styles: StyleDeclarationSet): (MarkdownWriter, (Element) => Unit) = {
-    val out = new MarkdownWriter(output.asFunction, render, root, ". ")
+    val f: String => Unit = { s =>
+      print(s)
+      output.asFunction(s)
+    }
+    val out = new MarkdownWriter(f, render, root, ". ")
     (out, renderElement(out))
   }
 
@@ -81,13 +88,13 @@ object ParadoxMarkdown extends RendererFactory[MarkdownWriter] {
     case (other, acc) => other :: acc
   }
 
-  private def cacheRefTitle(anchors: Seq[Span], content: Seq[Span]): Unit = anchors.headOption match {
-    case Some(InternalLinkTarget(Id(id))) =>
-      val title = content match {
-        case List(Text(text, _)) => text
-      }
-      RefsCache.put(id, title)
-    case _ => ()
+  private def cacheRefTitle(anchors: Seq[Span], content: Seq[Span]): Unit = {
+    anchors.headOption match {
+      case Some(InternalLinkTarget(Id(id))) =>
+        val title = content.asInstanceOf[List[TextContainer]].map(_.content).mkString
+        RefsCache.put(id, title)
+      case _ => ()
+    }
   }
 
   private def fileName(path: String) = new JFile(path).getName
@@ -306,7 +313,6 @@ object Main extends App {
 
   implicit val codec:Codec = Codec.UTF8
 
-
   val akkaRst = {
     import laika.parse.rst.Directives._
     import laika.parse.rst.Directives.Parts._
@@ -365,6 +371,6 @@ object Main extends App {
     ReStructuredText withBlockDirectives(blockDirectives: _*) withTextRoles(textRoles: _*)
   }
 
-  Transform from akkaRst to ParadoxMarkdown fromDirectory srcDir.toJava toDirectory destDir.toJava
+  Transform.from(akkaRst).to(ParadoxMarkdown).fromDirectory(srcDir.toJava)(codec).toDirectory(destDir.toJava)(codec)
 
 }
