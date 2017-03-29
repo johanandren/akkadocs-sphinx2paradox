@@ -10,6 +10,18 @@ $ sbt
 sbt> ~run <path-to-sphinx-site> <path-to-paradox-site>
 ```
 
+Manual steps/problems needed to be dealth with before the script can be run:
+ 
+ * `.. :includecode` statements needs to have a blank line after
+   * regex search replace with `(.. includecode:: .*)\n[^\n]` `\n[^\n\s]`
+ * Paragraphs cannot end with `:` 
+   * regex search replace with `^(\w.*):+$` `\1`
+ * Unsupported directives found:
+    * `.. highlightlang::`
+    * `.. tabularcolumns::`
+    * `.. highlight::`
+ 
+
 See also the `scripts` directory for utilities to help convert and clean up
 docs.
 

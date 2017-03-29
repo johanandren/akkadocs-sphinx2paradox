@@ -1,7 +1,7 @@
 package rst2md
 
 import better.files._
-import java.io.{File => JFile}
+import java.io.{FileFilter, File => JFile}
 import java.nio.charset.Charset
 
 import laika.api.Transform
@@ -307,6 +307,7 @@ object Main extends App {
   val destDir = args(1).toFile
   assert(srcDir.isDirectory)
   assert(destDir.isDirectory || !destDir.exists)
+  // don't delete, we want to merge
   if (destDir.exists) destDir.delete()
   destDir.createDirectories()
 
@@ -371,6 +372,11 @@ object Main extends App {
     ReStructuredText withBlockDirectives(blockDirectives: _*) withTextRoles(textRoles: _*)
   }
 
-  Transform.from(akkaRst).to(ParadoxMarkdown).fromDirectory(srcDir.toJava)(codec).toDirectory(destDir.toJava)(codec)
+  val excludeFilter = (file: JFile) => file.getName.endsWith(".py")
+
+  Transform.from(akkaRst)
+    .to(ParadoxMarkdown)
+    .fromDirectory(srcDir.toJava, excludeFilter)(codec)
+    .toDirectory(destDir.toJava)(codec)
 
 }
